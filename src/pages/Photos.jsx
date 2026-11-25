@@ -124,7 +124,7 @@ export default function Photos() {
       {pending ? (
         <Uploader jobId={id} files={pending} onCancel={() => setPending(null)} onDone={() => { setPending(null); load() }} />
       ) : (
-        <label className="button primary block photo-btn" style={{ color: '#fff' }}>
+        <label className="button primary block photo-btn">
           📷 Take or add photos
           <input type="file" accept="image/*" multiple hidden onChange={(e) => e.target.files.length && setPending([...e.target.files])} />
         </label>
