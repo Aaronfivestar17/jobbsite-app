@@ -10,18 +10,19 @@ export default function ProjectDetail() {
   const nav = useNavigate()
   const [job, setJob] = useState(null)
   const [editing, setEditing] = useState(false)
-  const [counts, setCounts] = useState({ submittals: 0, photos: 0 })
+  const [counts, setCounts] = useState({ submittals: 0, photos: 0, materials: 0 })
   const [invoices, setInvoices] = useState([])
 
   const load = useCallback(async () => {
-    const [j, s, p, i] = await Promise.all([
+    const [j, s, p, i, m] = await Promise.all([
       supabase.from('jobs').select('*').eq('id', id).single(),
       supabase.from('submittals').select('id', { count: 'exact', head: true }).eq('job_id', id),
       supabase.from('photos').select('id', { count: 'exact', head: true }).eq('job_id', id),
       supabase.from('invoices').select('amount,amount_paid,status').eq('job_id', id),
+      supabase.from('materials').select('id', { count: 'exact', head: true }).eq('job_id', id),
     ])
     setJob(j.data)
-    setCounts({ submittals: s.count || 0, photos: p.count || 0 })
+    setCounts({ submittals: s.count || 0, photos: p.count || 0, materials: m.count || 0 })
     setInvoices(i.data || [])
   }, [id])
 
@@ -84,6 +85,11 @@ export default function ProjectDetail() {
           <span className="icon">📷</span>
           <span className="title">Photos</span>
           <span className="muted small">{counts.photos} photo{counts.photos === 1 ? '' : 's'}</span>
+        </Link>
+        <Link to={`/projects/${id}/materials`} className="folder">
+          <span className="icon">🧱</span>
+          <span className="title">Materials ordered</span>
+          <span className="muted small">{counts.materials} order{counts.materials === 1 ? '' : 's'}</span>
         </Link>
       </div>
       <Link className="button block" to={`/invoices/new?job=${id}`}>💵 New invoice for this project</Link>

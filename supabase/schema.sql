@@ -91,11 +91,26 @@ create table if not exists public.photos (
   created_at timestamptz default now()
 );
 
+-- 5b. Materials ordered per project
+create table if not exists public.materials (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid not null references public.jobs(id) on delete cascade,
+  item text not null,
+  quantity text,
+  supplier text,
+  ordered_on date default current_date,
+  cost numeric(12,2),
+  delivered boolean not null default false,
+  notes text,
+  created_by text default (auth.jwt() ->> 'email'),
+  created_at timestamptz default now()
+);
+
 -- 6. Access rules: members can do everything, nobody else can do anything.
 do $$
 declare t text;
 begin
-  foreach t in array array['jobs','tasks','invoices','submittals','photos'] loop
+  foreach t in array array['jobs','tasks','invoices','submittals','photos','materials'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "members only" on public.%I', t);
     execute format('create policy "members only" on public.%I for all to authenticated using (public.is_member()) with check (public.is_member())', t);

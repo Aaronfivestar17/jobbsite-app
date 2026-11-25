@@ -9,6 +9,7 @@ import Projects from './pages/Projects'
 import ProjectDetail from './pages/ProjectDetail'
 import Submittals from './pages/Submittals'
 import Photos from './pages/Photos'
+import Materials from './pages/Materials'
 import Account from './pages/Account'
 
 export default function App() {
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/projects/:id" element={<ProjectDetail />} />
           <Route path="/projects/:id/submittals" element={<Submittals />} />
           <Route path="/projects/:id/photos" element={<Photos />} />
+          <Route path="/projects/:id/materials" element={<Materials />} />
           <Route path="/account" element={<Account email={session.user.email} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
