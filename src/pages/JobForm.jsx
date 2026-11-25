@@ -56,7 +56,7 @@ export default function JobForm({ job, onSaved, onDelete }) {
         Status
         <select value={f.status} onChange={set('status')}>
           <option value="active">Active</option>
-          <option value="on_hold">On hold</option>
+          {f.status === 'on_hold' && <option value="on_hold">On hold</option>}
           <option value="done">Done</option>
         </select>
       </label>

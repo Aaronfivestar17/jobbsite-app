@@ -29,9 +29,9 @@ export default function Projects() {
       <Header title="Projects" action={<button className="link" onClick={() => setAdding(!adding)}>{adding ? 'Cancel' : '+ New'}</button>} />
       {adding && <JobForm onSaved={(job) => nav(`/projects/${job.id}`)} />}
       <div className="segmented">
-        {['active', 'on_hold', 'done', 'all'].map((f) => (
+        {['active', 'done', 'all'].map((f) => (
           <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>
-            {f === 'on_hold' ? 'On hold' : f[0].toUpperCase() + f.slice(1)}
+            {f[0].toUpperCase() + f.slice(1)}
           </button>
         ))}
       </div>
