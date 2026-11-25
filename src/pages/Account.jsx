@@ -85,6 +85,7 @@ export default function Account({ email }) {
   return (
     <>
       <Header title="Account" back />
+      <button className="danger block" onClick={() => confirm('Log out?') && supabase.auth.signOut()}>Log out</button>
       <div className="card">
         <p className="small">Signed in as <b>{email}</b></p>
         <form className="form" onSubmit={changePw}>
@@ -109,7 +110,6 @@ export default function Account({ email }) {
       </ul>
       <h2>Data</h2>
       <DataUsage />
-      <button className="danger block" onClick={() => supabase.auth.signOut()}>Sign out</button>
     </>
   )
 }

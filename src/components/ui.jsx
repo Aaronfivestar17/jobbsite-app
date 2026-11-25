@@ -4,11 +4,11 @@ import { supabase } from '../supabase'
 import { fmtDate, money, invoiceState, balance, today } from '../util'
 export { balance }
 
-export function Header({ title, back, action }) {
+export function Header({ title, back, action, left }) {
   const nav = useNavigate()
   return (
     <header className="header">
-      <div className="header-side">{back && <button className="link" onClick={() => nav(-1)}>‹ Back</button>}</div>
+      <div className="header-side">{back ? <button className="link" onClick={() => nav(-1)}>‹ Back</button> : left}</div>
       <h1>{title}</h1>
       <div className="header-side right">{action}</div>
     </header>
