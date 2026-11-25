@@ -10,19 +10,20 @@ export default function ProjectDetail() {
   const nav = useNavigate()
   const [job, setJob] = useState(null)
   const [editing, setEditing] = useState(false)
-  const [counts, setCounts] = useState({ submittals: 0, photos: 0, materials: 0 })
+  const [counts, setCounts] = useState({ submittals: 0, photos: 0, materials: 0, documents: 0 })
   const [invoices, setInvoices] = useState([])
 
   const load = useCallback(async () => {
-    const [j, s, p, i, m] = await Promise.all([
+    const [j, s, p, i, m, d] = await Promise.all([
       supabase.from('jobs').select('*').eq('id', id).single(),
       supabase.from('submittals').select('id', { count: 'exact', head: true }).eq('job_id', id),
       supabase.from('photos').select('id', { count: 'exact', head: true }).eq('job_id', id),
       supabase.from('invoices').select('amount,amount_paid,status').eq('job_id', id),
       supabase.from('materials').select('id', { count: 'exact', head: true }).eq('job_id', id),
+      supabase.from('documents').select('id', { count: 'exact', head: true }).eq('job_id', id),
     ])
     setJob(j.data)
-    setCounts({ submittals: s.count || 0, photos: p.count || 0, materials: m.count || 0 })
+    setCounts({ submittals: s.count || 0, photos: p.count || 0, materials: m.count || 0, documents: d.count || 0 })
     setInvoices(i.data || [])
   }, [id])
 
@@ -34,11 +35,12 @@ export default function ProjectDetail() {
 
   async function remove() {
     if (!confirm(`Delete project "${job.name}"? All its submittals and photos are deleted too. Invoices are kept.`)) return
-    const [s, p] = await Promise.all([
+    const [s, p, d] = await Promise.all([
       supabase.from('submittals').select('file_path').eq('job_id', id),
       supabase.from('photos').select('path').eq('job_id', id),
+      supabase.from('documents').select('file_path').eq('job_id', id),
     ])
-    const paths = [...(s.data || []).map((x) => x.file_path), ...(p.data || []).map((x) => x.path)].filter(Boolean)
+    const paths = [...(s.data || []).map((x) => x.file_path), ...(p.data || []).map((x) => x.path), ...(d.data || []).map((x) => x.file_path)].filter(Boolean)
     if (paths.length) await supabase.storage.from(BUCKET).remove(paths)
     const { error } = await supabase.from('jobs').delete().eq('id', id)
     if (error) return alert(error.message)
@@ -90,6 +92,11 @@ export default function ProjectDetail() {
           <span className="icon">🧱</span>
           <span className="title">Materials ordered</span>
           <span className="muted small">{counts.materials} order{counts.materials === 1 ? '' : 's'}</span>
+        </Link>
+        <Link to={`/projects/${id}/documents`} className="folder">
+          <span className="icon">🗂️</span>
+          <span className="title">Supporting documents</span>
+          <span className="muted small">{counts.documents} item{counts.documents === 1 ? '' : 's'}</span>
         </Link>
       </div>
     </>

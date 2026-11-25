@@ -10,6 +10,7 @@ import ProjectDetail from './pages/ProjectDetail'
 import Submittals from './pages/Submittals'
 import Photos from './pages/Photos'
 import Materials from './pages/Materials'
+import Documents from './pages/Documents'
 import Account from './pages/Account'
 
 export default function App() {
@@ -71,6 +72,7 @@ export default function App() {
           <Route path="/projects/:id/submittals" element={<Submittals />} />
           <Route path="/projects/:id/photos" element={<Photos />} />
           <Route path="/projects/:id/materials" element={<Materials />} />
+          <Route path="/projects/:id/documents" element={<Documents />} />
           <Route path="/account" element={<Account email={session.user.email} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

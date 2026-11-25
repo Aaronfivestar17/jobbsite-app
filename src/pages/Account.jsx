@@ -34,19 +34,20 @@ function DataUsage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    Promise.all(['photos', 'submittals', 'invoices'].map(folderUsage))
-      .then(([photos, submittals, invoices]) => setUsage({ photos, submittals, invoices }))
+    Promise.all(['photos', 'submittals', 'documents', 'invoices'].map(folderUsage))
+      .then(([photos, submittals, documents, invoices]) => setUsage({ photos, submittals, documents, invoices }))
       .catch((e) => setError(e.message))
   }, [])
 
   if (error) return <p className="error">Could not load storage use: {error}</p>
   if (!usage) return <div className="card muted">Checking storage…</div>
 
-  const used = usage.photos.bytes + usage.submittals.bytes + usage.invoices.bytes
+  const used = usage.photos.bytes + usage.submittals.bytes + usage.documents.bytes + usage.invoices.bytes
   const pct = Math.min(100, (used / LIMIT) * 100)
   const rows = [
     ['📷 Photos', usage.photos],
     ['📁 Submittals', usage.submittals],
+    ['🗂️ Supporting documents', usage.documents],
     ['💵 Invoice files', usage.invoices],
   ]
 
