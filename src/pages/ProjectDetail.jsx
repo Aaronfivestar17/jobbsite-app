@@ -92,7 +92,6 @@ export default function ProjectDetail() {
           <span className="muted small">{counts.materials} order{counts.materials === 1 ? '' : 's'}</span>
         </Link>
       </div>
-      <Link className="button block" to={`/invoices/new?job=${id}`}>💵 New invoice for this project</Link>
     </>
   )
 }
