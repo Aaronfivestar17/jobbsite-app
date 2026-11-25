@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase, BUCKET } from '../supabase'
-import { today, uploadFile, openFile, money, invoiceState, balance } from '../util'
-import { Header, JobSelect, StatusPill } from '../components/ui'
+import { today, money, invoiceState, balance } from '../util'
+import { Header, StatusPill } from '../components/ui'
 
 const addDays = (iso, n) => {
   const d = new Date(iso + 'T12:00:00')
@@ -15,7 +15,6 @@ export default function InvoiceEdit() {
   const [params] = useSearchParams()
   const nav = useNavigate()
   const [f, setF] = useState(null)
-  const [file, setFile] = useState(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -23,10 +22,10 @@ export default function InvoiceEdit() {
       supabase.from('invoices').select('*').eq('id', id).single().then(({ data }) => setF(data))
     } else {
       const jobId = params.get('job')
-      const t = today()
-      const init = { job_id: jobId, invoice_number: '', client_name: '', amount: '', issued_date: null, due_date: null, status: 'to_bill', paid_date: null, amount_paid: '', notes: '', file_path: null }
+      const init = { job_id: jobId, client_name: '', amount: '', issued_date: today(), status: 'to_bill' }
       if (jobId) {
-        supabase.from('jobs').select('client_name').eq('id', jobId).single().then(({ data }) => setF({ ...init, client_name: data?.client_name || '' }))
+        supabase.from('jobs').select('client_name,name').eq('id', jobId).single()
+          .then(({ data }) => setF({ ...init, client_name: data?.client_name || data?.name || '' }))
       } else setF(init)
     }
   }, [id, params])
@@ -34,49 +33,24 @@ export default function InvoiceEdit() {
   if (!f) return <Header title="Invoice" back />
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
 
-  async function pickJob(jobId) {
-    let client = f.client_name
-    if (jobId && !client) {
-      const { data } = await supabase.from('jobs').select('client_name').eq('id', jobId).single()
-      client = data?.client_name || ''
-    }
-    setF({ ...f, job_id: jobId, client_name: client })
-  }
-
   async function save(e, overrides = {}) {
     e?.preventDefault()
     setBusy(true)
-    try {
-      const v = { ...f, ...overrides }
-      let file_path = v.file_path
-      if (file) {
-        const newPath = await uploadFile('invoices', file)
-        if (file_path) await supabase.storage.from(BUCKET).remove([file_path])
-        file_path = newPath
-      }
-      const row = {
-        job_id: v.job_id || null,
-        invoice_number: v.invoice_number || null,
-        client_name: v.client_name || null,
-        amount: Number(v.amount || 0),
-        issued_date: v.issued_date || null,
-        due_date: v.due_date || null,
-        status: v.status,
-        paid_date: v.status === 'paid' ? v.paid_date || today() : null,
-        amount_paid: v.amount_paid === '' || v.amount_paid == null ? null : Number(v.amount_paid),
-        notes: v.notes || null,
-        file_path,
-      }
-      const res = id
-        ? await supabase.from('invoices').update(row).eq('id', id)
-        : await supabase.from('invoices').insert(row)
-      if (res.error) throw res.error
-      nav(-1)
-    } catch (err) {
-      alert(err.message)
-    } finally {
-      setBusy(false)
+    const v = { ...f, ...overrides }
+    const row = {
+      client_name: v.client_name.trim(),
+      amount: Number(v.amount || 0),
+      issued_date: v.issued_date || today(),
+      status: v.status,
+      due_date: v.due_date || null,
+      paid_date: v.status === 'paid' ? v.paid_date || today() : null,
     }
+    const res = id
+      ? await supabase.from('invoices').update(row).eq('id', id)
+      : await supabase.from('invoices').insert({ ...row, job_id: v.job_id || null })
+    setBusy(false)
+    if (res.error) return alert(res.error.message)
+    nav(-1)
   }
 
   async function remove() {
@@ -92,17 +66,6 @@ export default function InvoiceEdit() {
   return (
     <>
       <Header title={id ? 'Invoice' : 'New invoice'} back />
-      {id && f.status === 'to_bill' && (
-        <button className="primary block" disabled={busy}
-          onClick={() => save(null, { status: 'unpaid', issued_date: today(), due_date: f.due_date || addDays(today(), 30) })}>
-          📤 Mark sent today (moves to Collect)
-        </button>
-      )}
-      {id && f.status === 'unpaid' && (
-        <button className="primary block" disabled={busy} onClick={() => save(null, { status: 'paid', paid_date: today() })}>
-          ✓ Mark paid today ({money(balance(f))})
-        </button>
-      )}
       <form className="card form" onSubmit={save}>
         {state && (
           <div className="inline">
@@ -110,68 +73,32 @@ export default function InvoiceEdit() {
           </div>
         )}
         <label>
-          Project
-          <JobSelect value={f.job_id} onChange={pickJob} />
-        </label>
-        <div className="inline">
-          <label className="grow">
-            Invoice #
-            <input value={f.invoice_number || ''} onChange={set('invoice_number')} />
-          </label>
-          <label className="grow">
-            Amount ($)
-            <input type="number" inputMode="decimal" step="0.01" min="0" value={f.amount} onChange={set('amount')} required />
-          </label>
-        </div>
-        <label>
-          Client
-          <input value={f.client_name || ''} onChange={set('client_name')} />
-        </label>
-        <div className="inline">
-          <label className="grow">
-            Sent
-            <input type="date" value={f.issued_date || ''} onChange={set('issued_date')} />
-          </label>
-          <label className="grow">
-            Due
-            <input type="date" value={f.due_date || ''} onChange={set('due_date')} />
-          </label>
-        </div>
-        <label>
-          Payment status
-          <select value={f.status} onChange={set('status')}>
-            <option value="to_bill">To bill (not sent yet)</option>
-            <option value="unpaid">Sent, waiting on payment</option>
-            <option value="paid">Paid</option>
-          </select>
-        </label>
-        {f.status === 'paid' ? (
-          <label>
-            Paid on
-            <input type="date" value={f.paid_date || today()} onChange={set('paid_date')} />
-          </label>
-        ) : f.status === 'to_bill' ? null : (
-          <label>
-            Partial payment received ($)
-            <input type="number" inputMode="decimal" step="0.01" min="0" value={f.amount_paid ?? ''} onChange={set('amount_paid')} placeholder="0.00" />
-          </label>
-        )}
-        <label>
-          Notes
-          <textarea rows="2" value={f.notes || ''} onChange={set('notes')} />
+          Name
+          <input value={f.client_name || ''} onChange={set('client_name')} required placeholder="Client or job name" />
         </label>
         <label>
-          Invoice file (PDF or photo)
-          <input type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files[0] || null)} />
+          Amount ($)
+          <input type="number" inputMode="decimal" step="0.01" min="0" value={f.amount} onChange={set('amount')} required placeholder="0.00" />
         </label>
-        {f.file_path && !file && (
-          <button type="button" onClick={() => openFile(f.file_path)}>📄 View attached file</button>
-        )}
+        <label>
+          Date
+          <input type="date" value={f.issued_date || ''} onChange={set('issued_date')} required />
+        </label>
         <button className="primary" disabled={busy}>{busy ? 'Saving…' : 'Save invoice'}</button>
-        {id && (
-          <button type="button" className="danger" onClick={remove}>Delete invoice</button>
-        )}
       </form>
+
+      {id && f.status === 'to_bill' && (
+        <button className="block" disabled={busy}
+          onClick={() => save(null, { status: 'unpaid', due_date: f.due_date || addDays(f.issued_date || today(), 30) })}>
+          📤 Mark sent (moves to Collect)
+        </button>
+      )}
+      {id && f.status === 'unpaid' && (
+        <button className="block" disabled={busy} onClick={() => save(null, { status: 'paid', paid_date: today() })}>
+          ✓ Mark paid today ({money(balance(f))})
+        </button>
+      )}
+      {id && <button className="danger block" onClick={remove}>Delete invoice</button>}
     </>
   )
 }

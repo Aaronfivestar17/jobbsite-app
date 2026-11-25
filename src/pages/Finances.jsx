@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabase'
-import { money, balance, invoiceState, today } from '../util'
+import { money, balance, invoiceState, today, fmtDate } from '../util'
 import { Header, InvoiceRow, Empty } from '../components/ui'
 
 function exportCsv(rows, name) {
@@ -36,12 +36,12 @@ export default function Finances() {
 
   async function markSent(inv, e) {
     e.stopPropagation()
-    const t = today()
-    const d = new Date(t + 'T12:00:00')
+    const sent = inv.issued_date || today()
+    const d = new Date(sent + 'T12:00:00')
     d.setDate(d.getDate() + 30)
     const { error } = await supabase
       .from('invoices')
-      .update({ status: 'unpaid', issued_date: t, due_date: inv.due_date || d.toISOString().slice(0, 10) })
+      .update({ status: 'unpaid', issued_date: sent, due_date: inv.due_date || d.toISOString().slice(0, 10) })
       .eq('id', inv.id)
     if (error) return alert(error.message)
     load()
@@ -87,7 +87,7 @@ export default function Finances() {
                       {i.invoice_number ? `#${i.invoice_number} · ` : ''}
                       {i.client_name || i.jobs?.name || 'Invoice'}
                     </div>
-                    <div className="muted small">{[i.jobs?.name, money(i.amount)].filter(Boolean).join(' · ')}</div>
+                    <div className="muted small">{[money(i.amount), fmtDate(i.issued_date)].filter(Boolean).join(' · ')}</div>
                   </div>
                   <button className="small" onClick={(e) => markSent(i, e)}>Mark sent</button>
                 </li>
