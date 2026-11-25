@@ -14,6 +14,7 @@ import Account from './pages/Account'
 export default function App() {
   const [session, setSession] = useState(undefined)
   const [member, setMember] = useState(undefined)
+  const [memberError, setMemberError] = useState('')
   const location = useLocation()
 
   useEffect(() => {
@@ -30,7 +31,10 @@ export default function App() {
       .select('email')
       .eq('email', session.user.email.toLowerCase())
       .maybeSingle()
-      .then(({ data }) => setMember(Boolean(data)))
+      .then(({ data, error }) => {
+        setMemberError(error ? error.message : '')
+        setMember(Boolean(data))
+      })
   }, [session])
 
   if (!configured)
@@ -48,6 +52,7 @@ export default function App() {
       <div className="center-page">
         <h1>No access</h1>
         <p>{session.user.email} is not on the approved list. Ask the account owner to add you.</p>
+        {memberError && <p className="error">Details: {memberError}</p>}
         <button onClick={() => supabase.auth.signOut()}>Sign out</button>
       </div>
     )

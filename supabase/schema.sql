@@ -107,6 +107,12 @@ drop policy if exists "members can read members" on public.members;
 create policy "members can read members" on public.members
   for select to authenticated using (public.is_member());
 
+-- Let signed-in users reach the tables (row rules above still decide what they see).
+-- Newer Supabase projects don't grant this automatically.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant execute on function public.is_member() to authenticated;
+
 -- 7. Private file storage for invoice PDFs and site photos
 insert into storage.buckets (id, name, public) values ('files', 'files', false)
 on conflict (id) do nothing;
