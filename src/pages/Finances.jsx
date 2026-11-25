@@ -86,6 +86,7 @@ export default function Finances() {
                     <div className="title">
                       {i.invoice_number ? `#${i.invoice_number} · ` : ''}
                       {i.client_name || i.jobs?.name || 'Invoice'}
+                      {i.file_path ? ' 📎' : ''}
                     </div>
                     <div className="muted small">{[money(i.amount), fmtDate(i.issued_date)].filter(Boolean).join(' · ')}</div>
                   </div>

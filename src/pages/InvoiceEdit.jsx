@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase, BUCKET } from '../supabase'
-import { today, money, invoiceState, balance } from '../util'
+import { today, money, invoiceState, balance, uploadFile, openFile } from '../util'
 import { Header, StatusPill } from '../components/ui'
 
 const addDays = (iso, n) => {
@@ -16,13 +16,14 @@ export default function InvoiceEdit() {
   const nav = useNavigate()
   const [f, setF] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [file, setFile] = useState(null)
 
   useEffect(() => {
     if (id) {
       supabase.from('invoices').select('*').eq('id', id).single().then(({ data }) => setF(data))
     } else {
       const jobId = params.get('job')
-      const init = { job_id: jobId, client_name: '', amount: '', issued_date: today(), status: 'to_bill' }
+      const init = { job_id: jobId, client_name: '', amount: '', issued_date: today(), status: 'to_bill', notes: '', file_path: null }
       if (jobId) {
         supabase.from('jobs').select('client_name,name').eq('id', jobId).single()
           .then(({ data }) => setF({ ...init, client_name: data?.client_name || data?.name || '' }))
@@ -37,7 +38,20 @@ export default function InvoiceEdit() {
     e?.preventDefault()
     setBusy(true)
     const v = { ...f, ...overrides }
+    let file_path = v.file_path || null
+    if (file) {
+      try {
+        const p = await uploadFile('invoices', file)
+        if (file_path) await supabase.storage.from(BUCKET).remove([file_path])
+        file_path = p
+      } catch (err) {
+        setBusy(false)
+        return alert('Could not upload the file: ' + err.message)
+      }
+    }
     const row = {
+      notes: v.notes?.trim() || null,
+      file_path,
       client_name: v.client_name.trim(),
       amount: Number(v.amount || 0),
       issued_date: v.issued_date || today(),
@@ -84,6 +98,17 @@ export default function InvoiceEdit() {
           Date
           <input type="date" value={f.issued_date || ''} onChange={set('issued_date')} required />
         </label>
+        <label>
+          Notes
+          <textarea rows="3" value={f.notes || ''} onChange={set('notes')} placeholder="Optional" />
+        </label>
+        <label>
+          {f.file_path ? 'Replace PDF invoice' : 'Attach PDF invoice'}
+          <input type="file" accept="application/pdf,image/*" onChange={(e) => setFile(e.target.files[0] || null)} />
+        </label>
+        {f.file_path && !file && (
+          <button type="button" onClick={() => openFile(f.file_path)}>📄 View attached invoice</button>
+        )}
         <button className="primary" disabled={busy}>{busy ? 'Saving…' : 'Save invoice'}</button>
       </form>
 

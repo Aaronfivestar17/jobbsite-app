@@ -65,6 +65,7 @@ export function InvoiceRow({ inv, onClick, action }) {
         <div className="title">
           {inv.invoice_number ? `#${inv.invoice_number} · ` : ''}
           {inv.client_name || inv.jobs?.name || 'Invoice'}
+          {inv.file_path ? ' 📎' : ''}
         </div>
         <div className="muted small">
           {inv.jobs?.name && inv.client_name ? `${inv.jobs.name} · ` : ''}
